@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
  * Created by amabb on 08/02/16.
  */
 
-@XmlRootElement(name = "ExamResult")
+
 public class ExamResult {
 
     private String studentName;
@@ -19,7 +19,6 @@ public class ExamResult {
 
     private double percentage;
 
-    @XmlElement(name = "studentName")
     public String getStudentName() {
         return studentName;
     }
@@ -28,8 +27,6 @@ public class ExamResult {
         this.studentName = studentName;
     }
 
-    @XmlElement(name = "dob")
-    @XmlJavaTypeAdapter(type = LocalDate.class, value = net.spring.batch.sample.LocalDateAdapter.class)
     public LocalDate getDob() {
         return dob;
     }
@@ -38,7 +35,6 @@ public class ExamResult {
         this.dob = dob;
     }
 
-    @XmlElement(name = "percentage")
     public double getPercentage() {
         return percentage;
     }

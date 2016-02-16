@@ -1,7 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:batch="http://www.springframework.org/schema/batch" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-3.0.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/batch
+       http://www.springframework.org/schema/batch/spring-batch-3.0.xsd
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+
+    <import resource="classpath:context-datasource.xml"/>
 
     <!-- JobRepository and JobLauncher are configuration/setup classes -->
     <bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean" />
@@ -13,7 +19,6 @@
     <!-- ItemReader reads a complete line one by one from input file -->
     <bean id="flatFileItemReader" class="org.springframework.batch.item.file.FlatFileItemReader"  scope="step">
         <property name="resource" value="classpath:ExamResult.txt" />
-
         <property name="lineMapper">
 
             <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
@@ -33,28 +38,25 @@
             </bean>
 
         </property>
-
     </bean>
 
-    <!-- XML ItemWriter which writes the data in XML format -->
-    <bean id="xmlItemWriter" class="org.springframework.batch.item.xml.StaxEventItemWriter">
 
-        <property name="resource" value="file:xml/examResult.xml" />
-
-        <property name="rootTagName" value="UniversityExamResultList" />
-
-        <property name="marshaller">
-
-            <bean class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
-                <property name="classesToBeBound">
-                    <list>
-                        <value>net.spring.batch.sample.model.ExamResult</value>
-                    </list>
-                </property>
-            </bean>
-
+    <!-- ItemWriter which writes data to database -->
+    <bean id="databaseItemWriter" class="org.springframework.batch.item.database.JdbcBatchItemWriter">
+        <property name="dataSource" ref="dataSource" />
+        <property name="sql">
+            <value>
+                <![CDATA[
+                    insert into EXAM_RESULT(STUDENT_NAME, DOB, PERCENTAGE)
+                    values (?, ?, ?)
+                ]]>
+            </value>
         </property>
 
+        <!-- We need a custom setter to handle the conversion between Jodatime LocalDate and MySQL DATE -->
+        <property name="ItemPreparedStatementSetter">
+            <bean class="net.spring.batch.sample.ExamResultItemPreparedStatementSetter" />
+        </property>
     </bean>
 
     <!-- Optional ItemProcessor to perform business logic/filtering on the input records -->
@@ -70,7 +72,8 @@
     <batch:job id="examResultJob">
         <batch:step id="step1">
             <batch:tasklet transaction-manager="transactionManager">
-                <batch:chunk reader="flatFileItemReader" writer="xmlItemWriter"  processor="itemProcessor" commit-interval="10" />
+                <batch:chunk reader="flatFileItemReader" writer="databaseItemWriter"
+                             processor="itemProcessor" commit-interval="10" />
             </batch:tasklet>
         </batch:step>
         <batch:listeners>
