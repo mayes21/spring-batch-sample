@@ -8,6 +8,7 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * Created by amabb on 08/02/16.
@@ -16,7 +17,7 @@ public class Main {
 
     public static void main(String args[]){
 
-
+        //ApplicationContext context = new ClassPathXmlApplicationContext("spring-batch-context.xml");
 
         ApplicationContext context = new AnnotationConfigApplicationContext(BatchConfiguration.class);
 

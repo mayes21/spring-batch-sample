@@ -7,6 +7,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -33,17 +34,19 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableBatchProcessing
-@PropertySource(value = { "classpath:context-datasource.xml" })
+@PropertySource(value = { "classpath:application.properties" })
 public class BatchConfiguration {
 
     @Autowired
     private Environment environment;
 
+    /*@SuppressWarnings("SpringJavaAutowiringInspection")
     @Autowired
     private JobBuilderFactory jobs;
 
+    @SuppressWarnings("SpringJavaAutowiringInspection")
     @Autowired
-    private StepBuilderFactory steps;
+    private StepBuilderFactory steps;*/
 
     @Bean
     public ItemReader<ExamResult> reader() {
@@ -67,28 +70,32 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public ItemWriter<ExamResult> writer(DataSource dataSource) {
+    public ItemWriter<ExamResult> writer() {
         JdbcBatchItemWriter<ExamResult> writer = new JdbcBatchItemWriter<ExamResult>();
-        writer.setSql("insert into EXAM_RESULT(STUDENT_NAME, DOB, PERCENTAGE) values (?, ?, ?)");
+        writer.setSql("insert into EXAM_RESULT(STUDENT_NAME, DOB, PERCENTAGE) values (:studentName, :dob, :percentage)");
         writer.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<ExamResult>());
-        writer.setDataSource(dataSource);
+        writer.setDataSource(dataSource());
         return writer;
     }
 
+
+
     @Bean
-    public Job examResultJob() {
+    public Job examResultJob(JobBuilderFactory jobs, Step s1) {
         return jobs.get("examResultJob")
-                .start(step1())
+                .incrementer(new RunIdIncrementer())
+                .flow(s1)
+                .end()
                 .build();
     }
 
     @Bean
-    public Step step1( ) {
-        return steps.get("step1")
+    public Step step1(StepBuilderFactory stepBuilderFactory) {
+        return stepBuilderFactory.get("step1")
                 .<ExamResult, ExamResult> chunk(10)
                 .reader(reader())
                 .processor(processor())
-                .writer(writer(dataSource()))
+                .writer(writer())
                 .build();
     }
 
